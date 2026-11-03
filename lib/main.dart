@@ -1,3 +1,4 @@
+import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/constants/supabase_constants.dart';
 import 'package:flutter/material.dart';
@@ -5,16 +6,20 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'core/constants/app_colors.dart';
 import 'core/injection_container.dart';
+import 'features/auth/presentation/login_screen.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/cart_checkout/providers/cart_provider.dart';
 import 'features/loyalty/providers/loyalty_provider.dart';
 import 'features/menu/providers/menu_provider.dart';
 import 'features/admin_dashboard/domain/review_provider.dart';
+import 'features/admin_dashboard/presentation/admin_dashboard_screen.dart';
+import 'features/staff/presentation/staff_dashboard_screen.dart';
 import 'features/staff/providers/staff_provider.dart';
 import 'main_navigation_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  usePathUrlStrategy(); // Cho phép phân trang URL sạch dạng / thay vì /#/ trên trình duyệt
 
   // Initialize Supabase if configured
   try {
@@ -83,7 +88,71 @@ class BrewPointApp extends StatelessWidget {
           ),
           dividerColor: AppColors.divider,
         ),
-        home: const MainNavigationScreen(),
+        initialRoute: '/',
+        onGenerateRoute: (settings) {
+          final uri = Uri.parse(settings.name ?? '/');
+          switch (uri.path) {
+            case '/login':
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (_) => const LoginScreen(),
+              );
+            case '/home':
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (_) => const MainNavigationScreen(initialIndex: 0),
+              );
+            case '/menu':
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (_) => const MainNavigationScreen(initialIndex: 1),
+              );
+            case '/cart':
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (_) => const MainNavigationScreen(initialIndex: 2),
+              );
+            case '/loyalty':
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (_) => const MainNavigationScreen(initialIndex: 3),
+              );
+            case '/staff':
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (ctx) {
+                  final auth = Provider.of<AuthProvider>(ctx);
+                  if (auth.currentUser == null || !auth.currentUser!.isStaff) {
+                    return const LoginScreen();
+                  }
+                  return const StaffDashboardScreen();
+                },
+              );
+            case '/admin':
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (ctx) {
+                  final auth = Provider.of<AuthProvider>(ctx);
+                  if (auth.currentUser == null || !auth.currentUser!.isAdmin) {
+                    return const LoginScreen();
+                  }
+                  return const AdminDashboardScreen();
+                },
+              );
+            case '/':
+            default:
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (ctx) {
+                  final auth = Provider.of<AuthProvider>(ctx);
+                  if (auth.currentUser == null) {
+                    return const LoginScreen();
+                  }
+                  return const MainNavigationScreen();
+                },
+              );
+          }
+        },
       ),
     );
   }

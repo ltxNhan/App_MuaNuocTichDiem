@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'core/constants/app_colors.dart';
 import 'features/cart_checkout/presentation/cart_screen.dart';
@@ -7,22 +8,61 @@ import 'features/home/presentation/home_screen.dart';
 import 'features/loyalty/presentation/loyalty_screen.dart';
 import 'features/menu/presentation/menu_screen.dart';
 import 'features/admin_dashboard/presentation/admin_dashboard_screen.dart';
-import 'features/auth/presentation/login_screen.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/staff/presentation/staff_dashboard_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
-  const MainNavigationScreen({super.key});
+  final int initialIndex;
+  const MainNavigationScreen({super.key, this.initialIndex = 0});
 
   @override
   State<MainNavigationScreen> createState() => _MainNavigationScreenState();
 }
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
-  int _currentIndex = 0;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncUrl();
+    });
+  }
+
+  @override
+  void didUpdateWidget(MainNavigationScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialIndex != oldWidget.initialIndex) {
+      _currentIndex = widget.initialIndex;
+      _syncUrl();
+    }
+  }
+
+  void _syncUrl() {
+    if (!mounted) return;
+    final user = Provider.of<AuthProvider>(context, listen: false).currentUser;
+    if (user == null) {
+      SystemNavigator.routeInformationUpdated(uri: Uri.parse('/login'));
+    } else if (user.isStaff) {
+      SystemNavigator.routeInformationUpdated(uri: Uri.parse('/staff'));
+    } else if (user.isAdmin) {
+      SystemNavigator.routeInformationUpdated(uri: Uri.parse('/admin'));
+    } else {
+      const routes = ['/home', '/menu', '/cart', '/loyalty'];
+      if (_currentIndex >= 0 && _currentIndex < routes.length) {
+        SystemNavigator.routeInformationUpdated(uri: Uri.parse(routes[_currentIndex]));
+      }
+    }
+  }
 
   void _onTabTapped(int index) {
     setState(() => _currentIndex = index);
+    const routes = ['/home', '/menu', '/cart', '/loyalty'];
+    if (index >= 0 && index < routes.length) {
+      SystemNavigator.routeInformationUpdated(uri: Uri.parse(routes[index]));
+    }
   }
 
   @override
@@ -31,22 +71,30 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final user = auth.currentUser;
 
     // PHÂN QUYỀN TRUY CẬP (ROLE-BASED ACCESS CONTROL - RBAC)
-    // 1. Nếu chưa đăng nhập -> Hiển thị Màn hình Đăng nhập theo vai trò
-    if (user == null) {
-      return const LoginScreen();
-    }
-
-    // 2. Nếu là tài khoản NHÂN VIÊN (Staff) -> Vào thẳng hệ thống Nhân viên (KDS Barista & POS)
-    if (user.isStaff) {
+    // 1. Nếu là tài khoản NHÂN VIÊN (Staff) -> Vào thẳng hệ thống Nhân viên (KDS Barista & POS)
+    if (user != null && user.isStaff) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        SystemNavigator.routeInformationUpdated(uri: Uri.parse('/staff'));
+      });
       return const StaffDashboardScreen();
     }
 
-    // 3. Nếu là tài khoản QUẢN TRỊ VIÊN (Admin) -> Vào Cổng Quản trị Kinh doanh (Owner Portal)
-    if (user.isAdmin) {
+    // 2. Nếu là tài khoản QUẢN TRỊ VIÊN (Admin) -> Vào Cổng Quản trị Kinh doanh (Owner Portal)
+    if (user != null && user.isAdmin) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        SystemNavigator.routeInformationUpdated(uri: Uri.parse('/admin'));
+      });
       return const AdminDashboardScreen();
     }
 
-    // 4. Mặc định tài khoản KHÁCH HÀNG -> Chỉ có 4 tab của khách (Home, Menu, Giỏ hàng, Thành viên)
+    // 3. Mặc định tài khoản KHÁCH HÀNG (hoặc khách đang duyệt xem món) -> 4 tab của khách (Home, Menu, Giỏ hàng, Thành viên)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      const routes = ['/home', '/menu', '/cart', '/loyalty'];
+      if (_currentIndex >= 0 && _currentIndex < routes.length) {
+        SystemNavigator.routeInformationUpdated(uri: Uri.parse(routes[_currentIndex]));
+      }
+    });
+
     final cart = Provider.of<CartProvider>(context);
 
     final pages = [
