@@ -10,17 +10,8 @@ class AuthProvider extends ChangeNotifier {
   String? _errorMessage;
 
   AuthProvider(this._repository) {
-    // Initialize default demo profile as Customer
-    _currentUser = const UserModel(
-      id: 'usr_gold_001',
-      phone: '0901234567',
-      fullName: 'Nguyễn Văn An',
-      role: 'customer',
-      points: 350,
-      membershipTier: 'Gold',
-      totalSpent: 4200000.0,
-      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=400&q=80',
-    );
+    // Mặc định chưa đăng nhập để mở màn hình Đăng nhập trước
+    _currentUser = null;
   }
 
   void switchDemoRole(String role) {

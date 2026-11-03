@@ -21,7 +21,7 @@ class UserModel {
     this.avatarUrl,
   });
 
-  bool get isCustomer => role == 'customer';
+  bool get isCustomer => role == 'customer' || role == 'user';
   bool get isStaff => role == 'staff';
   bool get isAdmin => role == 'admin';
 

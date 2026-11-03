@@ -131,7 +131,7 @@ class AuthRepository {
           'full_name': fullName.trim(),
           'password_hash': password.trim(),
           'email': (email != null && email.trim().isNotEmpty) ? email.trim() : null,
-          'role': 'customer',
+          'role': 'user',
           'points': 50,
           'membership_tier': 'Bronze',
           'total_spent': 0,
